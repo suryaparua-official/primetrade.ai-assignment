@@ -667,9 +667,4 @@ MIT License - See LICENSE file for details
 
 ## Author
 
-Backend Developer Internship Assignment - PrimeTrade.ai
-
-For questions or support, please refer to the API documentation at:
-
-- Swagger UI: http://localhost:5000/api-docs (User Service)
-- Swagger UI: http://localhost:5001/api-docs (Task Service)
+Surya Parua
