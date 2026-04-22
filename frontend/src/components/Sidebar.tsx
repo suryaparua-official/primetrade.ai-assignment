@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, ListTodo, User, Shield } from "lucide-react";
+import { LayoutDashboard, ListTodo, Shield } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export default function Sidebar({ active, setActive }: any) {
@@ -9,7 +9,6 @@ export default function Sidebar({ active, setActive }: any) {
   const menu = [
     { name: "Dashboard", icon: LayoutDashboard },
     { name: "Tasks", icon: ListTodo },
-    { name: "Profile", icon: User },
   ];
 
   if (role === "admin") {
@@ -18,7 +17,9 @@ export default function Sidebar({ active, setActive }: any) {
 
   return (
     <div className="w-64 bg-[#111] border-r border-gray-800 p-6">
-      <div className="flex flex-col gap-4 mt-6">
+      <h2 className="text-gray-500 text-sm mb-4">MENU</h2>
+
+      <div className="flex flex-col gap-3">
         {menu.map((item) => {
           const Icon = item.icon;
 
@@ -26,10 +27,10 @@ export default function Sidebar({ active, setActive }: any) {
             <button
               key={item.name}
               onClick={() => setActive(item.name)}
-              className={`flex items-center gap-3 px-3 py-2 rounded ${
+              className={`flex items-center gap-3 px-4 py-2 rounded-md transition-all ${
                 active === item.name
-                  ? "bg-green-500 text-black"
-                  : "text-gray-400 hover:bg-[#1f1f1f]"
+                  ? "bg-green-500 text-black shadow-md"
+                  : "text-gray-400 hover:bg-[#1f1f1f] hover:text-white"
               }`}
             >
               <Icon size={18} />

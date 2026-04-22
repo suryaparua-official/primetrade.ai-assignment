@@ -7,11 +7,20 @@ import toast from "react-hot-toast";
 const USER_API = process.env.NEXT_PUBLIC_USER_API!;
 const TASK_API = process.env.NEXT_PUBLIC_TASK_API!;
 
+// ================= TYPES =================
+
 type Task = {
   _id: string;
   title: string;
   description: string;
   completed?: boolean;
+};
+
+type User = {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
 };
 
 type AppType = {
@@ -21,6 +30,7 @@ type AppType = {
   tasks: Task[];
   loading: boolean;
 
+  // AUTH
   loginUser: (email: string, password: string) => Promise<boolean>;
   registerUser: (
     name: string,
@@ -29,12 +39,21 @@ type AppType = {
   ) => Promise<void>;
   logout: () => void;
 
+  // TASKS
   fetchTasks: () => Promise<void>;
   createTask: (title: string, description: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  updateTask: (id: string, data: Partial<Task>) => Promise<void>;
+  toggleTask: (id: string, completed: boolean) => Promise<void>;
+
+  // ADMIN
+  fetchUsers: () => Promise<User[] | undefined>;
+  deleteUser: (id: string) => Promise<void>;
 };
 
 const AppContext = createContext<AppType | null>(null);
+
+// ================= PROVIDER =================
 
 export const AppProvider = ({ children }: any) => {
   const [token, setToken] = useState<string | null>(null);
@@ -45,6 +64,8 @@ export const AppProvider = ({ children }: any) => {
 
   const taskAPI = useRef(axios.create({ baseURL: TASK_API }));
 
+  // ================= UTIL =================
+
   const decodeRole = (token: string) => {
     try {
       return JSON.parse(atob(token.split(".")[1])).role;
@@ -52,6 +73,8 @@ export const AppProvider = ({ children }: any) => {
       return null;
     }
   };
+
+  // ================= INIT =================
 
   useEffect(() => {
     const stored = localStorage.getItem("token");
@@ -68,6 +91,8 @@ export const AppProvider = ({ children }: any) => {
       return config;
     });
   }, [token]);
+
+  // ================= AUTH =================
 
   const registerUser = async (
     name: string,
@@ -108,6 +133,8 @@ export const AppProvider = ({ children }: any) => {
     window.location.href = "/login";
   };
 
+  // ================= TASK =================
+
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -140,6 +167,51 @@ export const AppProvider = ({ children }: any) => {
     }
   };
 
+  const updateTask = async (id: string, data: Partial<Task>) => {
+    try {
+      await taskAPI.current.put(`/tasks/${id}`, data);
+      toast.success("Task updated");
+      fetchTasks();
+    } catch {
+      toast.error("Update failed");
+    }
+  };
+
+  const toggleTask = async (id: string, completed: boolean) => {
+    try {
+      await taskAPI.current.put(`/tasks/${id}`, {
+        completed: !completed,
+      });
+      fetchTasks();
+    } catch {
+      toast.error("Toggle failed");
+    }
+  };
+
+  // ================= ADMIN =================
+
+  const fetchUsers = async (): Promise<User[] | undefined> => {
+    try {
+      const res = await axios.get(`${USER_API}/auth/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    } catch {
+      toast.error("Fetch users failed");
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    try {
+      await axios.delete(`${USER_API}/auth/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("User deleted");
+    } catch {
+      toast.error("Delete user failed");
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -154,6 +226,10 @@ export const AppProvider = ({ children }: any) => {
         fetchTasks,
         createTask,
         deleteTask,
+        updateTask,
+        toggleTask,
+        fetchUsers,
+        deleteUser,
       }}
     >
       {children}

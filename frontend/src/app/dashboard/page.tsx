@@ -6,12 +6,15 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 
 export default function Dashboard() {
-  // ✅ single destructure (FIXED)
   const {
     tasks,
     fetchTasks,
     createTask,
     deleteTask,
+    updateTask,
+    toggleTask,
+    fetchUsers,
+    deleteUser,
     token,
     role,
     initialized,
@@ -21,7 +24,13 @@ export default function Dashboard() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  // ✅ safe auth check
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
+  const [users, setUsers] = useState<any[]>([]);
+
+  // ================= AUTH =================
   useEffect(() => {
     if (!initialized) return;
 
@@ -32,6 +41,16 @@ export default function Dashboard() {
     }
   }, [token, initialized]);
 
+  // ================= ADMIN =================
+  useEffect(() => {
+    if (active === "Admin" && role === "admin") {
+      fetchUsers().then((data) => {
+        if (data) setUsers(data);
+      });
+    }
+  }, [active, role]);
+
+  // ================= CREATE =================
   const handleCreate = async () => {
     if (!title || !description) return;
 
@@ -81,48 +100,123 @@ export default function Dashboard() {
           {/* ===== Tasks ===== */}
           {active === "Tasks" && (
             <div>
-              <h1 className="text-xl mb-4">Tasks</h1>
+              <h1 className="text-xl mb-4 font-semibold">Tasks</h1>
 
+              {/* CREATE */}
               <div className="mb-6 flex gap-2">
                 <input
-                  className="p-2 bg-[#2a2a2a] rounded w-40"
+                  className="p-2 bg-[#2a2a2a] rounded w-40 focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="Title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
 
                 <input
-                  className="p-2 bg-[#2a2a2a] rounded w-60"
+                  className="p-2 bg-[#2a2a2a] rounded w-60 focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="Description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
 
                 <button
-                  className="bg-green-500 px-4 rounded"
+                  className="bg-green-500 px-4 rounded hover:bg-green-600 transition"
                   onClick={handleCreate}
                 >
                   Add
                 </button>
               </div>
 
+              {/* TASK LIST */}
               <div className="space-y-3">
                 {tasks.map((t) => (
                   <div
                     key={t._id}
-                    className="bg-[#181818] p-4 rounded flex justify-between items-center"
+                    className="bg-[#181818] p-4 rounded-lg flex justify-between items-center hover:bg-[#1f1f1f] transition"
                   >
-                    <div>
-                      <h3>{t.title}</h3>
-                      <p className="text-sm text-gray-400">{t.description}</p>
+                    {/* LEFT */}
+                    <div className="flex items-center gap-3 w-full">
+                      <input
+                        type="checkbox"
+                        checked={t.completed}
+                        onChange={() => toggleTask(t._id, t.completed!)}
+                        className="accent-green-500"
+                      />
+
+                      {editId === t._id ? (
+                        <div className="flex gap-2 w-full">
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="bg-[#2a2a2a] p-1 rounded w-40"
+                          />
+                          <input
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            className="bg-[#2a2a2a] p-1 rounded flex-1"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <h3
+                            className={`font-medium ${
+                              t.completed ? "line-through text-gray-500" : ""
+                            }`}
+                          >
+                            {t.title}
+                          </h3>
+                          <p className="text-sm text-gray-400">
+                            {t.description}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    <button
-                      onClick={() => deleteTask(t._id)}
-                      className="text-red-400"
-                    >
-                      Delete
-                    </button>
+                    {/* RIGHT ACTIONS */}
+                    <div className="flex gap-2 ml-4">
+                      {editId === t._id ? (
+                        <>
+                          <button
+                            onClick={() => {
+                              updateTask(t._id, {
+                                title: editTitle,
+                                description: editDesc,
+                              });
+                              setEditId(null);
+                            }}
+                            className="px-3 py-1 bg-green-500 rounded text-black text-sm hover:bg-green-600"
+                          >
+                            Save
+                          </button>
+
+                          <button
+                            onClick={() => setEditId(null)}
+                            className="px-3 py-1 bg-gray-600 rounded text-sm hover:bg-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditId(t._id);
+                              setEditTitle(t.title);
+                              setEditDesc(t.description);
+                            }}
+                            className="px-3 py-1 bg-blue-500 rounded text-sm hover:bg-blue-600"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => deleteTask(t._id)}
+                            className="px-3 py-1 bg-red-500 rounded text-sm hover:bg-red-600"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -147,14 +241,40 @@ export default function Dashboard() {
             <div>
               <h1 className="text-xl mb-4">Admin Panel</h1>
 
-              <div className="bg-[#181818] p-6 rounded space-y-4">
-                <button className="bg-blue-500 px-4 py-2 rounded">
-                  Get All Users
-                </button>
+              <div className="bg-[#181818] p-6 rounded">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-400 text-left">
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th></th>
+                    </tr>
+                  </thead>
 
-                <button className="bg-yellow-500 px-4 py-2 rounded">
-                  System Stats
-                </button>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u._id} className="border-t border-gray-700">
+                        <td>{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.role}</td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              deleteUser(u._id);
+                              setUsers((prev) =>
+                                prev.filter((x) => x._id !== u._id),
+                              );
+                            }}
+                            className="text-red-400"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
