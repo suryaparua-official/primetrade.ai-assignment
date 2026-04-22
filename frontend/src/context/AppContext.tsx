@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 const USER_API = process.env.NEXT_PUBLIC_USER_API!;
@@ -21,7 +21,7 @@ type AppType = {
   tasks: Task[];
   loading: boolean;
 
-  loginUser: (email: string, password: string) => Promise<void>;
+  loginUser: (email: string, password: string) => Promise<boolean>;
   registerUser: (
     name: string,
     email: string,
@@ -43,10 +43,11 @@ export const AppProvider = ({ children }: any) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const taskAPI = useRef(axios.create({ baseURL: TASK_API }));
+
   const decodeRole = (token: string) => {
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.role;
+      return JSON.parse(atob(token.split(".")[1])).role;
     } catch {
       return null;
     }
@@ -60,6 +61,13 @@ export const AppProvider = ({ children }: any) => {
     }
     setInitialized(true);
   }, []);
+
+  useEffect(() => {
+    taskAPI.current.interceptors.request.use((config) => {
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      return config;
+    });
+  }, [token]);
 
   const registerUser = async (
     name: string,
@@ -80,12 +88,16 @@ export const AppProvider = ({ children }: any) => {
         email,
         password,
       });
+
       localStorage.setItem("token", res.data.token);
       setToken(res.data.token);
       setRole(decodeRole(res.data.token));
+
       toast.success("Login successful");
+      return true;
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Login failed");
+      return false;
     }
   };
 
@@ -93,24 +105,16 @@ export const AppProvider = ({ children }: any) => {
     localStorage.removeItem("token");
     setToken(null);
     setRole(null);
-    toast.success("Logged out");
     window.location.href = "/login";
   };
-
-  const taskAPI = axios.create({ baseURL: TASK_API });
-
-  taskAPI.interceptors.request.use((config) => {
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const res = await taskAPI.get("/tasks");
+      const res = await taskAPI.current.get("/tasks");
       setTasks(res.data);
     } catch {
-      toast.error("Failed to fetch tasks");
+      toast.error("Fetch failed");
     } finally {
       setLoading(false);
     }
@@ -118,8 +122,8 @@ export const AppProvider = ({ children }: any) => {
 
   const createTask = async (title: string, description: string) => {
     try {
-      await taskAPI.post("/tasks", { title, description });
-      toast.success("Task created");
+      await taskAPI.current.post("/tasks", { title, description });
+      toast.success("Created");
       fetchTasks();
     } catch {
       toast.error("Create failed");
@@ -128,7 +132,7 @@ export const AppProvider = ({ children }: any) => {
 
   const deleteTask = async (id: string) => {
     try {
-      await taskAPI.delete(`/tasks/${id}`);
+      await taskAPI.current.delete(`/tasks/${id}`);
       toast.success("Deleted");
       fetchTasks();
     } catch {

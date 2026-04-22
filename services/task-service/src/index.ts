@@ -14,10 +14,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-connectDB();
-
-app.use("/api/v1/tasks", taskRoutes);
-
 // Swagger setup
 const swaggerOptions = {
   definition: {
@@ -25,15 +21,31 @@ const swaggerOptions = {
     info: {
       title: "Task Service API",
       version: "1.0.0",
-      description: "API documentation for Task Service (Tasks CRUD)",
+      description: "Tasks CRUD API",
     },
-    servers: [{ url: "http://localhost:5001" }],
+    servers: [{ url: `http://localhost:${process.env.PORT}` }],
   },
-  apis: ["./src/routes/*.ts", "./src/controllers/*.ts"],
+  apis: ["./src/**/*.ts", "./dist/**/*.js"],
 };
+
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.listen(process.env.PORT, () => {
-  console.log(`Task service running on ${process.env.PORT}`);
-});
+app.use("/api/v1/tasks", taskRoutes);
+
+// ✅ FIX: DB connect first then start server
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(process.env.PORT, () => {
+      console.log(`Task service running on ${process.env.PORT}`);
+    });
+  } catch (err) {
+    console.error("Server failed to start", err);
+    process.exit(1);
+  }
+};
+
+startServer();

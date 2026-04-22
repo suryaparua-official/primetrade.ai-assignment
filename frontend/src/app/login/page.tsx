@@ -14,8 +14,11 @@ export default function Login() {
 
   const submitHandler = async (e: any) => {
     e.preventDefault();
-    await loginUser(email, password);
-    router.push("/dashboard");
+    const success = await loginUser(email, password);
+
+    if (success) {
+      router.push("/dashboard");
+    }
   };
 
   return (
