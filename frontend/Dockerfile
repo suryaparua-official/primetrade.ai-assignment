@@ -10,7 +10,7 @@ RUN npm install
 # Copy all files
 COPY . .
 
-# Build-time ENV (FIX)
+# Build-time ENV
 ARG NEXT_PUBLIC_USER_API
 ARG NEXT_PUBLIC_TASK_API
 

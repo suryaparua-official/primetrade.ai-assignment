@@ -228,7 +228,7 @@ export default function Dashboard() {
             <div>
               <h1 className="text-xl mb-4">Profile</h1>
 
-              <div className="bg-[#181818] p-6 rounded w-[400px]">
+              <div className="bg-[#181818] p-6 rounded w-400px">
                 <p>
                   <span className="text-gray-500">Role:</span> {role}
                 </p>
