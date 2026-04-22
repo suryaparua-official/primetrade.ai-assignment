@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  user-service:
+    build: ./services/user-service
+    container_name: user-service
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/primetrade
+      - JWT_SECRET=secret123
+      - PORT=5000
+    depends_on:
+      - mongo
+
+  task-service:
+    build: ./services/task-service
+    container_name: task-service
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/primetrade
+      - JWT_SECRET=secret123
+      - PORT=5001
+    depends_on:
+      - mongo
+
+  nginx:
+    build: ./services/nginx
+    container_name: nginx-gateway
+    restart: always
+    ports:
+      - "8000:80"
+    depends_on:
+      - user-service
+      - task-service
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000/api/v1
+    depends_on:
+      - nginx
+
+volumes:
+  mongo_data:
