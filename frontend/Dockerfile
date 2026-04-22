@@ -10,6 +10,13 @@ RUN npm install
 # Copy all files
 COPY . .
 
+# Build-time ENV (FIX)
+ARG NEXT_PUBLIC_USER_API
+ARG NEXT_PUBLIC_TASK_API
+
+ENV NEXT_PUBLIC_USER_API=$NEXT_PUBLIC_USER_API
+ENV NEXT_PUBLIC_TASK_API=$NEXT_PUBLIC_TASK_API
+
 # Build Next.js app
 RUN npm run build
 
