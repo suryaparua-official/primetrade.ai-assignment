@@ -11,6 +11,7 @@ dotenv.config();
 
 const app = express();
 
+// ================= MIDDLEWARE =================
 app.use(
   cors({
     origin: "*",
@@ -19,21 +20,44 @@ app.use(
 
 app.use(express.json());
 
-// Routes
+// ================= ROUTES =================
 app.use("/api/v1/auth", authRoutes);
 
-// Swagger setup
+// ================= SWAGGER SETUP =================
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
       title: "User Service API",
       version: "1.0.0",
-      description: "API documentation for User Service (Auth)",
+      description: "API documentation for User Service (Auth & Admin)",
     },
-    servers: [{ url: `http://localhost:${process.env.PORT}` }],
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT}/api/v1`,
+      },
+    ],
+
+    // 🔐 JWT AUTH SUPPORT (VERY IMPORTANT)
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: ["./src/**/*.ts", "./dist/**/*.js"],
+
+  // scan swagger comments
+  apis: ["./src/routes/*.ts", "./dist/routes/*.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -41,34 +65,39 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use(
   "/api-docs",
   swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, { explorer: true }),
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+  }),
 );
 
-// Health check
+// ================= HEALTH =================
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
-// Root
+// ================= ROOT =================
 app.get("/", (req, res) => {
   res.send("User service running");
 });
 
-// 404 handler
+// ================= 404 =================
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Start server safely
+// ================= START SERVER =================
 const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(process.env.PORT, () => {
-      console.log(`User service running on ${process.env.PORT}`);
+    const PORT = process.env.PORT || 5000;
+
+    app.listen(PORT, () => {
+      console.log(`🚀 User service running on http://localhost:${PORT}`);
+      console.log(`📘 Swagger docs → http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
-    console.error("Server failed to start", error);
+    console.error("❌ Server failed to start", error);
     process.exit(1);
   }
 };
