@@ -1,6 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 
@@ -10,13 +9,6 @@ import swaggerJsdoc from "swagger-jsdoc";
 dotenv.config();
 
 const app = express();
-
-app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-  }),
-);
 
 app.use(express.json());
 
@@ -35,7 +27,6 @@ const swaggerOptions = {
         url: `http://localhost:${process.env.PORT}/api/v1`,
       },
     ],
-
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -45,14 +36,8 @@ const swaggerOptions = {
         },
       },
     },
-
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
+    security: [{ bearerAuth: [] }],
   },
-
   apis: ["./src/routes/*.ts", "./dist/routes/*.js"],
 };
 
@@ -61,11 +46,10 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use(
   "/api-docs",
   swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-  }),
+  swaggerUi.setup(swaggerSpec, { explorer: true }),
 );
 
+// FIX 4: Health endpoint so Docker healthcheck works
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
@@ -81,9 +65,7 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
-
     const PORT = process.env.PORT || 5000;
-
     app.listen(PORT, () => {
       console.log(`User service running on http://localhost:${PORT}`);
       console.log(`Swagger docs → http://localhost:${PORT}/api-docs`);

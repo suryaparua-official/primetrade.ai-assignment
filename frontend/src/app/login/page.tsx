@@ -22,10 +22,10 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-black via-zinc-900 to-zinc-800">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800">
       <form
         onSubmit={submitHandler}
-        className="bg-white/5 backdrop-blur-lg border border-white/10 p-10 rounded-2xl w-380px space-y-6 shadow-2xl"
+        className="bg-white/5 backdrop-blur-lg border border-white/10 p-10 rounded-2xl w-[380px] space-y-6 shadow-2xl"
       >
         <h2 className="text-2xl font-semibold text-center text-white">
           Welcome Back

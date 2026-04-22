@@ -1,6 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import { connectDB } from "./config/db.js";
 import taskRoutes from "./routes/task.routes.js";
 
@@ -11,12 +10,6 @@ dotenv.config();
 
 const app = express();
 
-app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-  }),
-);
 app.use(express.json());
 
 const swaggerOptions = {
@@ -33,17 +26,24 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/v1/tasks", taskRoutes);
 
+// FIX 4: Health endpoint so Docker healthcheck works
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
+
+app.get("/", (req, res) => {
+  res.send("Task service running");
+});
+
 const startServer = async () => {
   try {
     await connectDB();
-
     app.listen(process.env.PORT, () => {
-      console.log(`Task service running on ${process.env.PORT}`);
+      console.log(`Task service running on port ${process.env.PORT}`);
     });
   } catch (err) {
     console.error("Server failed to start", err);
