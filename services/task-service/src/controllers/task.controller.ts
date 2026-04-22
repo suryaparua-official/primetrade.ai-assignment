@@ -32,7 +32,7 @@ export const createTask = async (req: any, res: Response) => {
   }
 };
 
-// ================= UPDATE (🔥 NEW) =================
+// ================= UPDATE =================
 export const updateTask = async (req: any, res: Response) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -41,7 +41,6 @@ export const updateTask = async (req: any, res: Response) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // 🔐 ownership check
     if (task.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: "Not allowed" });
     }
@@ -67,7 +66,6 @@ export const deleteTask = async (req: any, res: Response) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // 🔐 ownership check
     if (task.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: "Not allowed" });
     }

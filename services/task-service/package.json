@@ -10,7 +10,7 @@
     "dev": "concurrently \"tsc --watch\" \"node --watch dist/index.js\""
   },
   "keywords": [],
-  "author": "",
+  "author": "Surya Parua",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.6",

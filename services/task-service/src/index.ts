@@ -19,7 +19,6 @@ app.use(
 );
 app.use(express.json());
 
-// Swagger setup
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -39,7 +38,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/v1/tasks", taskRoutes);
 
-// ✅ FIX: DB connect first then start server
 const startServer = async () => {
   try {
     await connectDB();

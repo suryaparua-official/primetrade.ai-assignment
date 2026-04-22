@@ -8,7 +8,6 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
 
-    // basic validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
@@ -25,29 +24,24 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // check existing user
     const exist = await User.findOne({ email });
 
     if (exist) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // hash password
     const hashed = await bcrypt.hash(password, 10);
 
-    // create user
     await User.create({
       name,
       email,
       password: hashed,
-      // role default = user
     });
 
     return res.status(201).json({
       message: "Registered successfully",
     });
   } catch (err: any) {
-    // handle duplicate key error (extra safety)
     if (err.code === 11000) {
       return res.status(400).json({ message: "Email already exists" });
     }
