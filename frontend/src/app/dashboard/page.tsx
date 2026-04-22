@@ -239,26 +239,46 @@ export default function Dashboard() {
           {/* ===== Admin ===== */}
           {active === "Admin" && role === "admin" && (
             <div>
-              <h1 className="text-xl mb-4">Admin Panel</h1>
+              <h1 className="text-2xl font-semibold mb-6">Admin Panel</h1>
 
-              <div className="bg-[#181818] p-6 rounded">
+              <div className="bg-[#181818] rounded-lg overflow-hidden border border-gray-800">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-gray-400 text-left">
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th></th>
+                  {/* HEADER */}
+                  <thead className="bg-[#111] text-gray-400">
+                    <tr>
+                      <th className="text-left px-6 py-3">Name</th>
+                      <th className="text-left px-6 py-3">Email</th>
+                      <th className="text-left px-6 py-3">Role</th>
+                      <th className="text-right px-6 py-3">Action</th>
                     </tr>
                   </thead>
 
+                  {/* BODY */}
                   <tbody>
-                    {users.map((u) => (
-                      <tr key={u._id} className="border-t border-gray-700">
-                        <td>{u.name}</td>
-                        <td>{u.email}</td>
-                        <td>{u.role}</td>
-                        <td>
+                    {users.map((u, index) => (
+                      <tr
+                        key={u._id}
+                        className={`border-t border-gray-800 transition ${
+                          index % 2 === 0 ? "bg-[#181818]" : "bg-[#141414]"
+                        } hover:bg-[#1f1f1f]`}
+                      >
+                        <td className="px-6 py-4 font-medium">{u.name}</td>
+
+                        <td className="px-6 py-4 text-gray-400">{u.email}</td>
+
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-semibold ${
+                              u.role === "admin"
+                                ? "bg-red-500/20 text-red-400"
+                                : "bg-gray-700 text-gray-300"
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => {
                               deleteUser(u._id);
@@ -266,7 +286,7 @@ export default function Dashboard() {
                                 prev.filter((x) => x._id !== u._id),
                               );
                             }}
-                            className="text-red-400"
+                            className="px-3 py-1 bg-red-500 rounded text-sm hover:bg-red-600 transition"
                           >
                             Delete
                           </button>
@@ -275,6 +295,13 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
+
+                {/* EMPTY STATE */}
+                {users.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    No users found
+                  </div>
+                )}
               </div>
             </div>
           )}

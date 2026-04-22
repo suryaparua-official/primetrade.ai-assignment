@@ -33,4 +33,24 @@ router.get("/admin", authMiddleware, adminOnly, (req: any, res) => {
   });
 });
 
+// ================= GET ALL USERS (ADMIN) =================
+router.get("/users", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
+
+// ================= DELETE USER (ADMIN) =================
+router.delete("/users/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted" });
+  } catch {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
+
 export default router;
