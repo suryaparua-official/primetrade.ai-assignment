@@ -139,7 +139,7 @@ export const AppProvider = ({ children }: any) => {
     try {
       setLoading(true);
       const res = await taskAPI.current.get("/tasks");
-      setTasks(res.data);
+      setTasks(res.data.tasks);
     } catch {
       toast.error("Fetch failed");
     } finally {
