@@ -127,9 +127,9 @@ primetrade.ai-assignment/
     │   └── nginx.conf             (regex locations, CORS, proxy_hide_header)
     ├── user-service/              ← Auth microservice
     │   ├── Dockerfile
-    │   ├── package.json           (+ express-rate-limit, @types/bcryptjs)
+    │   ├── package.json
     │   └── src/
-    │       ├── index.ts           (+ rate limiting)
+    │       ├── index.ts           (rate limiting)
     │       ├── config/db.ts
     │       ├── controllers/auth.controller.ts
     │       ├── middleware/ (auth, admin)
@@ -143,10 +143,10 @@ primetrade.ai-assignment/
             ├── index.ts           (+ connectRedis on boot)
             ├── config/
             │   ├── db.ts
-            │   └── redis.ts       ← Redis client (NEW)
-            ├── controllers/task.controller.ts  (+ cache logic)
+            │   └── redis.ts       ← Redis client
+            ├── controllers/task.controller.ts
             ├── middleware/auth.middleware.ts
-            ├── models/task.model.ts            (+ userId index)
+            ├── models/task.model.ts
             └── routes/task.routes.ts
 ```
 
