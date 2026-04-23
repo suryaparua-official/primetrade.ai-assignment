@@ -175,3 +175,5 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   -d '{"name":"Test","email":"test@example.com","password":"password123"}'
 # → {"message":"Registered successfully"}
 ```
+
+---

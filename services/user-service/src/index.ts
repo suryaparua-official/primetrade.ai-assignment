@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 
@@ -9,11 +10,25 @@ import swaggerJsdoc from "swagger-jsdoc";
 dotenv.config();
 
 const app = express();
-
+app.set("trust proxy", 1);
 app.use(express.json());
 
+// ================= RATE LIMITING =================
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: "Too many attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/v1/auth/login", authLimiter);
+app.use("/api/v1/auth/register", authLimiter);
+
+// ================= ROUTES =================
 app.use("/api/v1/auth", authRoutes);
 
+// ================= SWAGGER =================
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -22,18 +37,10 @@ const swaggerOptions = {
       version: "1.0.0",
       description: "API documentation for User Service (Auth & Admin)",
     },
-    servers: [
-      {
-        url: `http://localhost:${process.env.PORT}/api/v1`,
-      },
-    ],
+    servers: [{ url: `http://localhost:${process.env.PORT}/api/v1` }],
     components: {
       securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
+        bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       },
     },
     security: [{ bearerAuth: [] }],
@@ -42,14 +49,13 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
 app.use(
   "/api-docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, { explorer: true }),
 );
 
-// FIX 4: Health endpoint so Docker healthcheck works
+// ================= HEALTH =================
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
@@ -62,6 +68,7 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
+// ================= BOOT =================
 const startServer = async () => {
   try {
     await connectDB();
