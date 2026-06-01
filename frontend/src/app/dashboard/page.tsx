@@ -147,7 +147,7 @@ function TaskRow({
         <div className="flex items-start gap-3">
           <button
             onClick={onToggle}
-            className="flex-shrink-0 mt-0.5 text-slate-600 hover:text-indigo-400 transition-colors"
+            className="shrink-0 mt-0.5 text-slate-600 hover:text-indigo-400 transition-colors"
           >
             {task.completed ? (
               <CheckCircle2 size={18} className="text-emerald-500" />
