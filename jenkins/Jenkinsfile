@@ -1,0 +1,153 @@
+pipeline {
+  agent any
+
+  environment {
+    AWS_REGION     = 'ap-south-1'
+    AWS_ACCOUNT_ID = credentials('aws-account-id')
+    ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    PROJECT        = 'task-manager'
+    GITOPS_REPO    = 'https://github.com/suryaparua-official/Distributed-Task-Management-System.git'
+    GIT_SHA        = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+    IMAGE_TAG      = "sha-${GIT_SHA}"
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        checkout scm
+        sh 'git log --oneline -3'
+      }
+    }
+
+    stage('Test') {
+      parallel {
+        stage('user-service') {
+          steps {
+            dir('services/user-service') {
+              sh 'npm ci'
+              sh 'npm test -- --forceExit'
+            }
+          }
+        }
+        stage('task-service') {
+          steps {
+            dir('services/task-service') {
+              sh 'npm ci'
+              sh 'npm test -- --forceExit'
+            }
+          }
+        }
+      }
+    }
+
+    stage('Build Images') {
+      steps {
+        script {
+          def services = [
+            [name: 'user-service', context: './services/user-service'],
+            [name: 'task-service', context: './services/task-service'],
+            [name: 'nginx',        context: './services/nginx'],
+            [name: 'frontend',     context: './frontend',
+             args: "--build-arg NEXT_PUBLIC_USER_API=/api/v1 --build-arg NEXT_PUBLIC_TASK_API=/api/v1"]
+          ]
+          services.each { svc ->
+            sh """
+              docker build ${svc.args ?: ''} \
+                -t ${ECR_REGISTRY}/${PROJECT}/${svc.name}:${IMAGE_TAG} \
+                -t ${ECR_REGISTRY}/${PROJECT}/${svc.name}:latest \
+                ${svc.context}
+            """
+          }
+        }
+      }
+    }
+
+    stage('Push to ECR') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'aws-credentials'
+        ]]) {
+          sh """
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+          """
+          script {
+            ['user-service','task-service','nginx','frontend'].each { svc ->
+              sh """
+                docker push ${ECR_REGISTRY}/${PROJECT}/${svc}:${IMAGE_TAG}
+                docker push ${ECR_REGISTRY}/${PROJECT}/${svc}:latest
+              """
+            }
+          }
+        }
+      }
+    }
+
+    stage('Update GitOps') {
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'github-token',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_TOKEN'
+          )
+        ]) {
+          sh """
+            git clone https://${GIT_USER}:${GIT_TOKEN}@github.com/suryaparua-official/Distributed-Task-Management-System.git /tmp/gitops
+            cd /tmp/gitops
+
+            sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" gitops/helm/user-service/values-prod.yaml
+            sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" gitops/helm/task-service/values-prod.yaml
+
+            git config user.email "jenkins@ci.local"
+            git config user.name  "Jenkins CI"
+            git add .
+            git diff --staged --quiet || git commit -m "ci: deploy ${IMAGE_TAG} [skip ci]"
+            git push origin main
+            rm -rf /tmp/gitops
+          """
+        }
+      }
+    }
+
+    stage('Verify Deploy') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'aws-credentials'
+        ]]) {
+          sh """
+            aws eks update-kubeconfig --region ${AWS_REGION} --name task-manager-eks
+            for i in \$(seq 1 30); do
+              STATUS=\$(kubectl get application task-manager-prod -n argocd \
+                -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "Pending")
+              HEALTH=\$(kubectl get application task-manager-prod -n argocd \
+                -o jsonpath='{.status.health.status}' 2>/dev/null || echo "Unknown")
+              echo "[\$i/30] Sync: \$STATUS | Health: \$HEALTH"
+              [ "\$STATUS" = "Synced" ] && [ "\$HEALTH" = "Healthy" ] && exit 0
+              sleep 10
+            done
+            exit 1
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    success { echo "✅ Deployed ${IMAGE_TAG}" }
+    failure { echo "❌ Failed — check logs" }
+    always  {
+      sh 'docker image prune -f'
+      cleanWs()
+    }
+  }
+}

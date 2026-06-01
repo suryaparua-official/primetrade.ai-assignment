@@ -1,0 +1,5 @@
+jenkins_port: 8080
+jenkins_home: /var/lib/jenkins
+kubectl_version: "1.31.0"
+helm_version: "3.16.0"
+aws_region: ap-south-1

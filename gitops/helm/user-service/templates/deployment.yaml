@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { .Release.Name } }
+  namespace: { { .Release.Namespace } }
+  labels:
+    app: { { .Release.Name } }
+    version: v1
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      app: { { .Release.Name } }
+  template:
+    metadata:
+      labels:
+        app: { { .Release.Name } }
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "{{ .Values.istio.inject }}"
+    spec:
+      serviceAccountName: { { .Release.Name } }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: { { .Release.Name } }
+      containers:
+        - name: { { .Release.Name } }
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - containerPort: { { .Values.service.port } }
+          envFrom:
+            - secretRef:
+                name: { { .Values.externalSecret.secretName } }
+          env:
+            - name: PORT
+              value: "{{ .Values.env.PORT }}"
+            - name: NODE_ENV
+              value: "{{ .Values.env.NODE_ENV }}"
+          resources: { { - toYaml .Values.resources | nindent 12 } }
+          readinessProbe:
+            httpGet:
+              path: { { .Values.probes.readiness.path } }
+              port: { { .Values.service.port } }
+            initialDelaySeconds:
+              { { .Values.probes.readiness.initialDelaySeconds } }
+            periodSeconds: { { .Values.probes.readiness.periodSeconds } }
+          livenessProbe:
+            httpGet:
+              path: { { .Values.probes.liveness.path } }
+              port: { { .Values.service.port } }
+            initialDelaySeconds:
+              { { .Values.probes.liveness.initialDelaySeconds } }
+            periodSeconds: { { .Values.probes.liveness.periodSeconds } }

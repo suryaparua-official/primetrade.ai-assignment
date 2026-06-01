@@ -1,0 +1,8 @@
+---
+- name: Setup Jenkins CI Server
+  hosts: jenkins
+  become: true
+
+  roles:
+    - common
+    - jenkins
